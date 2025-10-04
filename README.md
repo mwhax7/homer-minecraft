@@ -81,3 +81,6 @@ If you would like to change internal port of Homer from default `8080` to your p
 
 - **`IPV6_DISABLE`** (default: 0)
 Set to `1` to disable listening on IPv6.
+
+## Credits
+[bastienwirtz](https://github.com/bastienwirtz) | [Homer](https://github.com/bastienwirtz/homer)
