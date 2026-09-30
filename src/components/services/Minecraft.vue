@@ -1,5 +1,5 @@
 <template>
-  <Generic :item="item">
+  <Generic :item="displayItem">
     <template #content>
       <p class="title is-4">{{ item.name }}</p>
       <p class="subtitle is-6">
@@ -38,6 +38,7 @@ export default {
     status: "",
     software: "",
     version: "",
+    logo: "",
     players: {
       online: 0,
       max: 0,
@@ -45,6 +46,14 @@ export default {
   }),
 
   computed: {
+    displayItem() {
+      if (!this.logo) {
+        return this.item;
+      }
+
+      return { ...this.item, logo: this.logo };
+    },
+
     server() {
       return this.item.host || "";
     },
@@ -88,7 +97,7 @@ export default {
           this.version = data.version || "";
 
           if (data.icon) {
-            this.item.logo = data.icon;
+            this.logo = data.icon;
           }
 
           this.players.online = data.players?.online || 0;
