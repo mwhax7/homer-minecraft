@@ -3,14 +3,15 @@
     <template #content>
       <p class="title is-4">{{ item.name }}</p>
       <p class="subtitle is-6">
-        <template v-if="status === 'running'">
-          {{ software }} | v{{ version }} | {{ players.online }}/{{ players.max }} players
+        <template v-if="item.subtitle">
+          {{ item.subtitle }}
         </template>
-        <template v-else>
-          Minecraft Server
+        <template v-else-if="status === 'running'">
+          {{ details }}
         </template>
       </p>
     </template>
+
     <template #indicator>
       <div v-if="status" class="status" :class="status">
         {{ status }}
@@ -22,12 +23,17 @@
 <script>
 import service from "@/mixins/service.js";
 
+const MINECRAFT_API = "https://api.mcsrvstat.us/3";
+
 export default {
   name: "Minecraft",
+
   mixins: [service],
+
   props: {
     item: Object,
   },
+
   data: () => ({
     status: "",
     software: "",
@@ -37,30 +43,63 @@ export default {
       max: 0,
     },
   }),
+
+  computed: {
+    server() {
+      return this.item.host || "";
+    },
+
+    details() {
+      const players = `${this.players.online}/${this.players.max} players`;
+
+      return [this.software, this.version, players]
+        .filter(Boolean)
+        .join(" | ");
+    },
+  },
+
   created() {
+    this.endpoint = MINECRAFT_API;
+    this.autoUpdateMethod = this.fetchServerStatus;
     this.fetchServerStatus();
   },
-  methods: {
-    fetchServerStatus: async function () {
-      const host = this.item.host || "127.0.0.1";
-      const port = this.item.port || 25565;
 
-      window
-        .fetch(`https://api.mcsrvstat.us/2/${host}:${port}`)
-        .then((response) => response.json())
+  methods: {
+    fetchServerStatus() {
+      if (!this.server) {
+        console.error(
+          `Minecraft: "${this.item.name}" is missing the host option`,
+        );
+
+        this.status = "error";
+        return;
+      }
+
+      return this.fetch(this.server)
         .then((data) => {
-          if (data.online) {
-            this.status = "running";
-            this.software = data.software || "Unknown";
-            this.version = data.version || "N/A";
-            this.players.online = data.players?.online || 0;
-            this.players.max = data.players?.max || 0;
-          } else {
+          if (!data.online) {
             this.status = "stopped";
+            return;
           }
+
+          this.status = "running";
+
+          this.software = data.software || "";
+          this.version = data.version || "";
+
+          if (data.icon) {
+            this.item.logo = data.icon;
+          }
+
+          this.players.online = data.players?.online || 0;
+          this.players.max = data.players?.max || 0;
         })
-        .catch((e) => {
-          console.log(e);
+        .catch((error) => {
+          console.error(
+            `Minecraft: failed to fetch "${this.server}"`,
+            error,
+          );
+
           this.status = "error";
         });
     },
